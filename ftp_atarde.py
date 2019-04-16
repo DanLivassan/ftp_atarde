@@ -18,18 +18,34 @@ class FtpAtarde:
     def get_articles_xml(self, server):
         with FTP(self._host) as ftp:
             ftp.login(self._username, self._password)
-            last_file = self.get_last_name_retrieved(server)
-            last_date = self.get_date_from_filename(last_file)
-            new_date_file_name = self.mount_file_name_from_date(last_date + datetime.timedelta(days=1))
+
+            new_date_file_name = self.add_a_day_on_file(server)
 
             try:
+
+                if not os.path.exists(SERVERS[server]['LOCAL_PATH']):
+                    os.mkdir(SERVERS[server]['LOCAL_PATH'])
+
+                if self.get_attempts(server) is None:
+                    self.set_attempts(server, 0)
+
+                if int(self.get_attempts(server)) > SERVERS[server]['MAX_ATTEMPTS']:
+                    self.add_a_day_on_file(server)
+                    self.set_last_name_retrieved(server, new_date_file_name)
+                    self.set_attempts(server, 0)
+
+                self.add_attempts(server)
+
                 with open(SERVERS[server]['LOCAL_PATH'] + new_date_file_name, 'wb') as handle:
                     ftp.retrbinary("RETR {}".format(new_date_file_name), handle.write)
+
                 self.set_last_name_retrieved(server, new_date_file_name)
+                self.set_attempts(server, 0)
                 print("Arquivo disponível para importação: {}".format(SERVERS[server]['LOCAL_PATH'] + new_date_file_name))
             except Error:
                 print(Error.__str__())
                 os.remove(SERVERS[server]['LOCAL_PATH'] + new_date_file_name)
+
                 print("O arquivo não foi encontrado no servidor")
 
     def get_last_news_names(self):
@@ -49,12 +65,28 @@ class FtpAtarde:
     @staticmethod
     def get_last_name_retrieved(server):
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
-        return r.get(REDIS_KEYS[server])
+        return r.get(REDIS_KEYS[server]['IMPORT_VAR'])
 
     @staticmethod
     def set_last_name_retrieved(server, filename):
         r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
-        return str(r.set(REDIS_KEYS[server], filename))
+        return str(r.set(REDIS_KEYS[server]['IMPORT_VAR'], filename))
+
+    @staticmethod
+    def set_attempts(server: str, number_of_attempts: int):
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        return str(r.set(REDIS_KEYS[server]['COUNTS_VAR'], number_of_attempts))
+
+    @staticmethod
+    def get_attempts(server):
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        return r.get(REDIS_KEYS[server]['COUNTS_VAR'])
+
+    @staticmethod
+    def add_attempts(server: str):
+        r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT)
+        attempts = int(r.get(REDIS_KEYS[server]['COUNTS_VAR']))+1
+        return str(r.set(REDIS_KEYS[server]['COUNTS_VAR'], attempts))
 
     @staticmethod
     def get_date_from_filename(filename: str):
@@ -68,7 +100,12 @@ class FtpAtarde:
     def mount_file_name_from_date(date: datetime.datetime):
         return date.strftime('%Y-%m-%d-JORNAL.xml')
 
-
+    def add_a_day_on_file(self, server):
+        last_file = self.get_last_name_retrieved(server)
+        last_date = self.get_date_from_filename(last_file)
+        new_date_file_name = self.mount_file_name_from_date(last_date + datetime.timedelta(days=1))
+        return new_date_file_name
+#2018-05-23-JORNAL.xml:
 
 
 ftp = FtpAtarde(SERVERS['GN3']['HOST'], SERVERS['GN3']['USERNAME'], SERVERS['GN3']['PASSWORD'])
