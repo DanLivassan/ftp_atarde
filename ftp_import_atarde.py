@@ -8,7 +8,7 @@ from ftplib import FTP
 from constants import *
 
 
-class FtpAtarde:
+class FtpImportAtarde:
     def __init__(self, host, username, password):
         self._host = host
         self._username = username
@@ -105,9 +105,9 @@ class FtpAtarde:
         last_date = self.get_date_from_filename(last_file)
         new_date_file_name = self.mount_file_name_from_date(last_date + datetime.timedelta(days=1))
         return new_date_file_name
-#2018-05-23-JORNAL.xml:
 
 
-ftp = FtpAtarde(SERVERS['GN3']['HOST'], SERVERS['GN3']['USERNAME'], SERVERS['GN3']['PASSWORD'])
-#ftp.set_last_name_retrieved('GN3', '2019-04-14-JORNAL.xml')
+
+ftp = FtpImportAtarde(SERVERS['GN3']['HOST'], SERVERS['GN3']['USERNAME'], SERVERS['GN3']['PASSWORD'])
+#ftp.set_last_name_retrieved('GN3', '2018-05-23-JORNAL.xml')
 ftp.get_articles_xml('GN3')

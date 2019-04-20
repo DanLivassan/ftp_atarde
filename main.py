@@ -2,7 +2,7 @@
 from ftp_beenils import FtpBeenils
 import sys, redis
 from constants import *
-#python main.py beenils.com.br root b7h(VKca get /root/ftp 1.41.1.2019.02.20.53.EC.xml
+#python main.py beenils.com.br root get /root/ftp 1.41.1.2019.02.20.53.EC.xml
 from ftplib import FTP
 actions = [GET, PUT]
 try:
